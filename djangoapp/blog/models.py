@@ -15,7 +15,7 @@ class PostAttachment(AbstractAttachment):
         super_save = super().save(*args, **kwargs)
         file_changed = False
 
-        if self.cover:
+        if self.file:
             file_changed = current_file_name != self.file.name
 
         if file_changed:
@@ -64,10 +64,17 @@ class Category(models.Model):
         return self.name
 
 
+class PageManager(models.Manager):
+    def get_published(self):
+        return self.filter(is_published=True).order_by('-pk')
+
+
 class Page(models.Model):
     class Meta:
         verbose_name = 'Page'
         verbose_name_plural = 'Pages'
+
+    objects = PageManager()
 
     title = models.CharField(max_length=65)
     slug = models.SlugField(
@@ -77,6 +84,11 @@ class Page(models.Model):
     is_published = models.BooleanField(
         default=False, help_text='Este campo precisará estar marcado para a paǵina ser exibida publicamente.')
     content = models.TextField()
+
+    def get_absolute_url(self):
+        if not self.is_published:
+            return reverse('blog:index')
+        return reverse('blog:page', args=(self.slug,))
 
     def save(self, *args, **kwargs):
         if not self.slug:
